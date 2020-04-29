@@ -1,64 +1,70 @@
 <?php
+class Model
+{
+    private $dbh;
 
-class Model {
-  private $dbh;
+    public function __construct()
+    {
+        require 'db-config.php';
+        $this->dbh = new PDO($host_plus_dbname, $dbuser, $pass);
+    }
 
- public function __construct() {
-   $this->dbh = new PDO('mysql:host=185.181.165.252;dbname=emlysvap_fh', 'emlysvap_fh', 'emlysvap_fhemlysvap_fh');
- }
+    private function runsql($sql, $params = null)
+    {
+        $stmt = $this->dbh->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetchAll();
+        $stmt = null;
+        return $result;
+    }
 
- public function runsql($sql) {
+    public function addTask($name, $email, $text, $status)
+    {
+        $this->runsql("INSERT INTO `tasks` (`user`, `email`, `text`, `status`) VALUES (?, ?, ?, ?)", array( $name, $email, $text, $status ));
+    }
 
-    echo "<script>console.log(\"" . $sql ."\");</script>";
+    public function UpdateTask($name, $email, $text, $status, $id)
+    {
+        $this->runsql("UPDATE `tasks` SET `user`=?, `email`=?, `text`=?, `status`=?  WHERE `id`=? ", array( $name, $email, $text, $status, $id ));
+    }
 
-    $stmt = $this->dbh->prepare($sql);
+    public function setAdminEdited($id)
+    {
+        $this->runsql("UPDATE `tasks` SET `edited`='1' WHERE `id`=? ", array($id));
+    }
 
-    $stmt->execute();
-    $result = $stmt->fetchAll();
-    $stmt = null;
+    public function getItemById($id)
+    {
+        return $this->runsql("SELECT * FROM `tasks` WHERE `id`=? ", array($id));
+    }
 
-    return $result;
- }
+    public function getItems()
+    {
+        return $this->runsql("SELECT COUNT(*) as items FROM tasks");
+    }
 
- public function addTask($name,$email, $text , $status){
-  return $this->runsql("INSERT INTO `tasks` (`user`, `email`, `text`, `status`) VALUES ('".$name."', '".$email."', '".$text."', '".$status."');");
- }
+    public function getTasks()
+    {
+        $page = "1";
+        //calculating sql pagination limits
+        $fistindex = ($page - 1) * 3;
+        $per_page = 3;
+        return $this->runsql("SELECT * FROM `tasks` ORDER BY `id` ASC LIMIT " . $fistindex . "," . $per_page );
+    }
 
- public function UpdateTask($name, $email, $text, $status, $id){
-   $this->runsql("UPDATE `tasks` SET `user`='".$name."', `email`='".$email."', `text`='".$text."', `status`='".$status."'  WHERE `id`='".$id."';");
- }
+    public function getIndexItems($sortby, $sortorder, $page)
+    {
+        //calculating sql pagination limits
+        $fistindex = ($page - 1) * 3;
+        $per_page = 3;
 
- public function setAdminEdited($id){
-   $this->runsql("UPDATE `tasks` SET `edited`='1' WHERE `id`='".$id."';");
- }
+        return $this->runsql("SELECT * FROM `tasks` ORDER BY ? ? LIMIT " . $fistindex . "," . $per_page , array( $sortby, $sortorder ));
+    }
 
- public function getItemById($id){
-  return $this->runsql("SELECT * FROM `tasks` WHERE `id`=".$id);
- }
-
- public function getItems(){
-  return $this->runsql("SELECT COUNT(*) as items FROM tasks");
- }
-
- public function getTasks(){
-  $sortby='id'; $sortorder = "ASC"; $page = "1";
-  //calculating sql pagination limits
-  $fistindex = ($page-1) * 3;
-  $lastindex = 3;
-  return $this->runsql("SELECT * FROM `tasks` ORDER BY `".$sortby."` ".$sortorder." LIMIT ".$fistindex.",".$lastindex." " );
- }
-
- public function getIndexItems($sortby, $sortorder, $page){
-  //calculating sql pagination limits
-  $fistindex = ($page-1) * 3;
-  $lastindex = 3;
-  return $this->runsql("SELECT * FROM `tasks` ORDER BY `".$sortby."` ".$sortorder." LIMIT ".$fistindex.",".$lastindex." " );
- }
-
- public function getAdminByHash($hash_admin){
-  return $this->runsql("SELECT hash FROM admin WHERE hash='".$hash_admin."'");
- }
-
+    public function getAdminByHash($hash_admin)
+    {
+        return $this->runsql("SELECT hash FROM admin WHERE hash='" . $hash_admin . "'");
+    }
 }
 
- ?>
+?>
